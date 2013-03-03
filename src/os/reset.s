@@ -28,7 +28,7 @@
 /* OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.		  */
 
 .include "sysequates.inc"
-
+.syntax unified
  /*--- Start */
 
 
@@ -36,21 +36,74 @@
 .global _reset /*FUNC	_reset*/
 	/* Initialisation done, sleep */
 .THUMB
-.loop:
-  b .loop
-/*	ldr r2, .Lsleep
+
+	/* Do any hardware intialisation that absolutely must be done first */
+	/* No stack set up at this point - be careful */
+	ldr	r0, =.Lsize_memory
+	ldr	r0, [r0]
+/*	cmp	r0, #0*/
+/*	blxne	r0*/
+
+
+    /* Leave the processor in system mode */ 
+
+	/* Assume that at this point, __memtop and __system_ram are populated
+	/* Let's get on with initialising our stacks */
+	
+	mrs	r0, psr			/* Original PSR value */
+	ldr	r1, __memtop			/* Top of memory */
+
+  mrs r0, control
+	bic    r0, r0, #MODE_BITS		/* Clear the mode bits */
+	orr    r0, r0, #0x1		/* Set Supervisor mode bits */
+	msr    control, r0			/* Change the mode   */
+	mov    sp, r1				/* End of SYS_STACK  */
+	
+	/* Subtract SYS stack size */
+	ldr	r2, __sys_stack_size
+	sbc	r1, r1, r2
+
+	bic    r0, r0, #MODE_BITS		/* Clear the mode bits */
+	orr    r0, r0, 0x0		/* Set Supervisor mode bits */
+	msr    control, r0			/* Change the mode */
+	mov    sp, r1				/* End of stack */
+	
+	/* And finally subtract Kernel stack size to get final __memtop */
+	ldr	r2, __svc_stack_size
+	sbc	r1, r1, r2
+	str	r1, __memtop
+	
+	/*-- Leave core in SVC mode ! */
+	
+	/* Zero the memory in the .bss section.  */
+	mov 	a2, #0			/* Second arg: fill value */
+	mov	fp, a2			/* Null frame pointer */
+	
+	ldr	a1, .Lbss_start		/* First arg: start of memory block */
+	ldr	a3, .Lbss_end	
+	sub	a3, a3, a1		/* Third arg: length of block */
+	bl	memset
+
+	ldr r2, .Lc_entry		/* Let C coder have at initialisation */
+        mov     lr, pc
+        bx      r2
+
+	cpsie	i			/* enable irq */
+	cpsie	f			/* and fiq */
+
+
+
+
+	ldr r2, .Lsleep
   mov     lr, pc
-  bx      r2*/
+  bx      r2
 
 /* Variables (hopefully) provided by the linker */
-
-.global c_entry
-.global sys_sleep
-
+.align
 .Lbss_start:		.word	__bss_start__
 .Lbss_end:		.word	__bss_end__
-/*.Lc_entry:		.word	c_entry
-.Lsleep:		.word	sys_sleep*/
+.Lc_entry:		.word	c_entry
+.Lsleep:		.word	sys_sleep
 
 /* Defaulted variables */
 .Lsize_memory:		.word	_size_memory
