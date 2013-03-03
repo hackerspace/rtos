@@ -58,6 +58,7 @@
 	orr    r0, r0, #0x1		/* Set Supervisor mode bits */
 	msr    control, r0			/* Change the mode   */
 	mov    sp, r1				/* End of SYS_STACK  */
+  isb
 	
 	/* Subtract SYS stack size */
 	ldr	r2, __sys_stack_size
@@ -67,6 +68,7 @@
 	orr    r0, r0, 0x0		/* Set Supervisor mode bits */
 	msr    control, r0			/* Change the mode */
 	mov    sp, r1				/* End of stack */
+  isb
 	
 	/* And finally subtract Kernel stack size to get final __memtop */
 	ldr	r2, __svc_stack_size
