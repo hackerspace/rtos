@@ -6,6 +6,7 @@ LD = ${ARCH}-ld
 AR = ${ARCH}-ar
 OBJCOPY = ${ARCH}-objcopy
 
+CPU = cortex-m3
 TOOLS_VERSION = $(shell $(CC) -dumpversion)
 
 ifndef PLATFORM
@@ -28,8 +29,8 @@ SYSLIBS = ~/sat/lib/gcc/arm-none-eabi/4.7.3/libgcc.a
 #SYSLIBS = /usr/local/lib/gcc/$(ARCH)/$(TOOLS_VERSION)/libgcc.a
 #SYSLIBS = ./newlib/usr/lib/gcc/$(ARCH)/$(TOOLS_VERSION)/libgcc.a
 NEWLIB_DIR = newlib/usr/$(ARCH)
-NEWLIB_LIBC = $(NEWLIB_DIR)/lib/thumb/libc.a 
-NEWLIB_LIBM = $(NEWLIB_DIR)/lib/thumb/libm.a
+NEWLIB_LIBC = $(NEWLIB_DIR)/lib/thumb/$(CPU)/libc.a
+NEWLIB_LIBM = $(NEWLIB_DIR)/lib/thumb/$(CPU)/libm.a
 
 MODULES := os
 #bsp bsp/generic bsp/$(PLATFORM) lib lambda
