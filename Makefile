@@ -20,7 +20,7 @@ CFLAGS = -O0 -g -std=gnu99 -Werror -DPLATFORM=$(PLATFORM) -DRASPBERRY_PI
 ASFLAGS = -g
 endif
 
-CFLAGS_FOR_TARGET = -mcpu=cortex-m3 #arm1176jzf-s
+CFLAGS_FOR_TARGET = -mcpu=cortex-m3 -mthumb #arm1176jzf-s
 ASFLAGS_FOR_TARGET = -mcpu=cortex-m3 -mthumb #arm1176jzf-s
 LDFLAGS = -nostdlib -static --error-unresolved-symbols
 
