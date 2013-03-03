@@ -20,16 +20,16 @@ CFLAGS = -O0 -g -std=gnu99 -Werror -DPLATFORM=$(PLATFORM) -DRASPBERRY_PI
 ASFLAGS = -g
 endif
 
-CFLAGS_FOR_TARGET = -mcpu=cortex-m3 -mthumb #arm1176jzf-s
-ASFLAGS_FOR_TARGET = -mcpu=cortex-m3 -mthumb #arm1176jzf-s
+CFLAGS_FOR_TARGET = -mcpu=cortex-m3 -mthumb -ggdb3 #arm1176jzf-s
+ASFLAGS_FOR_TARGET = -mcpu=cortex-m3 -mthumb -ggdb3 #arm1176jzf-s
 LDFLAGS = -nostdlib -static --error-unresolved-symbols
 
 SYSLIBS = ~/sat/lib/gcc/arm-none-eabi/4.7.3/libgcc.a
 #SYSLIBS = /usr/local/lib/gcc/$(ARCH)/$(TOOLS_VERSION)/libgcc.a
 #SYSLIBS = ./newlib/usr/lib/gcc/$(ARCH)/$(TOOLS_VERSION)/libgcc.a
-NEWLIB_DIR = newlib/build/$(ARCH)
-NEWLIB_LIBC = $(NEWLIB_DIR)/lib/libc.a 
-NEWLIB_LIBM = $(NEWLIB_DIR)/lib/libm.a
+NEWLIB_DIR = newlib/usr/$(ARCH)
+NEWLIB_LIBC = $(NEWLIB_DIR)/lib/thumb/libc.a 
+NEWLIB_LIBM = $(NEWLIB_DIR)/lib/thumb/libm.a
 
 MODULES := os
 #bsp bsp/generic bsp/$(PLATFORM) lib lambda
