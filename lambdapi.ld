@@ -1,4 +1,4 @@
-ENTRY(__reset)
+ENTRY(_start)
 SECTIONS
 {
 	. = 0x0;
@@ -10,6 +10,8 @@ SECTIONS
 	__exidx_start = .;
 	.ARM.exidx   : { *(.ARM.exidx* .gnu.linkonce.armexidx.*) }
 	__exidx_end = .;
+
+	. = 0x20000000;
 
 	.data : { *(.data) }
 	__bss_start__ = .;
