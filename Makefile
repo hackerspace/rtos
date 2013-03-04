@@ -71,6 +71,7 @@ clean:
 all: bin/kernel.img
 
 gdb: bin/kernel.img
+	killall qemu-system-arm || true
 	# Start up qemu in the background
 	qemu-system-arm -nographic -M lm3s811evb -cpu cortex-m3 -m 1 -serial telnet:127.0.0.1:1235,server,nowait -kernel ./bin/kernel.elf -s -S &
 	# And fire up the debugger
