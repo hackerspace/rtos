@@ -31,12 +31,11 @@
 .syntax unified
  /*--- Start */
 
-
-.THUMB
+.global __reset
 .global _reset /*FUNC	_reset*/
 	/* Initialisation done, sleep */
 .THUMB
-
+_reset:
 	/* Do any hardware intialisation that absolutely must be done first */
 	/* No stack set up at this point - be careful */
 	ldr	r0, =.Lsize_memory
@@ -54,8 +53,8 @@
 	ldr	r1, __memtop			/* Top of memory */
 
   mrs r0, control
-	bic    r0, r0, #MODE_BITS		/* Clear the mode bits */
-	orr    r0, r0, #0x1		/* Set Supervisor mode bits */
+	bic    r0, r0, #0x1		/* Clear the mode bits */
+	orr    r0, r0, #0x0		/* Set Supervisor mode bits */
 	msr    control, r0			/* Change the mode   */
 	mov    sp, r1				/* End of SYS_STACK  */
   isb
@@ -64,8 +63,8 @@
 	ldr	r2, __sys_stack_size
 	sbc	r1, r1, r2
 
-	bic    r0, r0, #MODE_BITS		/* Clear the mode bits */
-	orr    r0, r0, 0x0		/* Set Supervisor mode bits */
+	bic    r0, r0, 0x1		/* Clear the mode bits */
+	orr    r0, r0, 0x1		/* Set Supervisor mode bits */
 	msr    control, r0			/* Change the mode */
 	mov    sp, r1				/* End of stack */
   isb
@@ -78,20 +77,20 @@
 	/*-- Leave core in SVC mode ! */
 	
 	/* Zero the memory in the .bss section.  */
-	mov 	a2, #0			/* Second arg: fill value */
+	mov a2, #0			/* Second arg: fill value */
 	mov	fp, a2			/* Null frame pointer */
 	
 	ldr	a1, .Lbss_start		/* First arg: start of memory block */
 	ldr	a3, .Lbss_end	
 	sub	a3, a3, a1		/* Third arg: length of block */
-	bl	memset
+	/*bl	memset*/
 
 	ldr r2, .Lc_entry		/* Let C coder have at initialisation */
-        mov     lr, pc
-        bx      r2
+  mov lr, pc
+  bx  r2
 
-	cpsie	i			/* enable irq */
-	cpsie	f			/* and fiq */
+	cpsie	i			 /*enable irq */
+	cpsie	f			 /*and fiq */
 
 
 
