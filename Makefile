@@ -76,6 +76,9 @@ gdb: bin/kernel.img
 	# And fire up the debugger
 	arm-none-eabi-gdb -q -nx -x "./gdbinit" --tui ./bin/kernel.elf
 
+dump: bin/kernel.elf
+	arm-none-eabi-objdump -D bin/kernel.elf
+
 help:
 	@echo
 	@echo make install-newlib
