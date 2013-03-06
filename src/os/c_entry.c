@@ -1,7 +1,7 @@
 #include <sleep.h>
 #include <c_entry.h>
 #include <string.h>
-
+#include <uart.h>
 
 #define CPERIPH    0xE000E000
 #define STCTRL     (CPERIPH+0x010)
@@ -10,30 +10,42 @@
 
 #define NVIC       (CPERIPH+0x100)
 
+#define INTCTRL    (0xe000ed04)
+
 static unsigned int current_time;
 
 typedef void (*fp)(void);
 extern fp _reset;
+extern int __memtop;
+
+int tasks[4] = {0,0,0,0};
+int _current_task = 0;
+int _next_task = 0;
+int task_count = 0;
+
+void syscall(int a) {
+}
+
+void spawn_task(fp task) {
+  tasks[0] = __memtop;
+  ((int*)__memtop)[15] = (int)task;
+}
+
+void task1() {
+  sysputc('1');
+}
 
 void systick(void) {
   current_time++;
+  sysputc('K');
+
+  // set PendSV and initiate context switch
+  (*((int*)INTCTRL)) |= 1<<28;
 }
 
 void c_entry(void) {
-  //fp tbl[20] = {[0 ... 19] = sys_sleep};
-  //fp tbl[20];
-  //fp *tbl = (fp*)0x0;
-
-  //tbl[1] = sys_sleep;
-  /*
-  tbl = (fp)0x00004000;
-  tbl[1] = _reset;
-
-  tbl[15] = systick;
-  */
 
   current_time = 0;
-  //asm volatile ("CPSIE i");
 
   *((int*)STRELOAD) = 10000;
   *((int*)STCURRENT) = 0;
@@ -41,4 +53,7 @@ void c_entry(void) {
   //*((int*)NVIC) |= (1<<15);
 
   //memcpy(0x0, tbl, sizeof(fp)*20);
+  sysputc('W');
+
+  spawn_task(task1);
 }
