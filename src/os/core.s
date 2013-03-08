@@ -28,17 +28,26 @@ L_first: .word _first_time
 .thumb_func
 .global _svcall
 _svcall:
-  mrs r12, psp
+/*  mrs r12, psp
   stmdb r12! , {r4-r11}
   msr psp, r12
-  isb
+  isb*/
 
+  mov r0, #66
   bl syscall
 
-  mrs r12, psp
+/*  mrs r12, psp
   ldmfd r12! , {r4-r11}
   msr psp, r12
-  isb
+  isb*/
+
+  /* do some stack adjustments */
+  mrs r1, psp
+  mov r2, #24
+  add r2, r1
+  ldr r3, [r2]
+  sub r3, #2      /* decrement return address by 2 */
+  str r3, [r2]
 
   mov r0, #0xfffffffd
   bx r0
@@ -88,8 +97,8 @@ _yes_save_it:
 
 _no_dont:
   nop
-/*  mov r0, #0xfffffffd
-  bx r0*/
+  mov r0, #0xfffffffd
+  bx r0
 
 
 
