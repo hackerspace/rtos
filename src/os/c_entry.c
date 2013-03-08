@@ -26,7 +26,7 @@ int task_count = 0;
 int _first_time = 0;
 
 void syscall(int a) {
-  sysputc(a);
+  sysputc(_current_task+'1');
 }
 
 void spawn_task(fp task) {
@@ -71,8 +71,11 @@ void spawn_task(fp task) {
 void task1() {
   short la = 0;
   while(1) {
-    if (!la++)
-    sysputc('1');
+    if (!la++) {
+      asm volatile("svc #0");
+//      asm volatile("nop");
+    }
+//    sysputc('1');
   }
 }
 
@@ -80,9 +83,11 @@ void task2() {
   short la = 0;
   while(1) {
 //    asm volatile("wfi");
-    //asm volatile("svc #65");
-    if (!la++)
-    sysputc('2');
+    if (!la++) {
+    asm volatile("svc #0");
+//    asm volatile("nop");
+    }
+    //sysputc('2');
   }
 }
 
