@@ -1,7 +1,17 @@
 #include <sleep.h>
-#include <c_entry.h>
+#include <system.h>
 #include <string.h>
 #include <uart.h>
+#include <clock.h>
+#include <stdio.h>
+#include <gpio.h>
+
+#define RCCBASE   0x40023800
+#define GPIODBASE 0x40020C00
+#define GET32(x) (*(int*)(x))
+
+#define PUT32(x,y) (*(int*)(x)) = y
+
 
 #define CPERIPH    0xE000E000
 #define STCTRL     (CPERIPH+0x010)
@@ -12,6 +22,11 @@
 
 #define INTCTRL    (0xe000ed04)
 
+#include <lm4f120h5qr.h>
+
+extern void _systick();
+extern void _svcall();
+extern void _ctx_switcher();
 static unsigned int current_time;
 
 typedef void (*fp)(void);
@@ -19,119 +34,108 @@ extern fp _reset;
 int _memtop;
 extern int __memtop;
 
-int tasks[4] = {0,0,0,0};
+struct stack_frame *tasks[4];
 int _current_task = 0;
 int _next_task = 0;
 int task_count = 0;
 int _first_time = 0;
+
+int __heap_top;
+int __heap_start;
 
 void syscall(int a) {
   sysputc(_current_task+'1');
 }
 
 void spawn_task(fp task) {
-  const int sfrm_size = 8; //twice this
-  tasks[task_count] = _memtop - sfrm_size*sizeof(int);
-  int *s_frm = (int*)tasks[task_count];
+  struct stack_frame *s_frm =
+    (struct stack_frame *)(_memtop - sizeof(struct stack_frame));
 
-  s_frm[0] = 0;
-  s_frm[1] = 0;
-  s_frm[2] = task_count+1;
-  s_frm[3] = 0;
-  s_frm[4] = 0;
-  s_frm[5] = 0;
-  s_frm[6] = (int)task-1;
-  s_frm[7] = 0x21000000;
-  tasks[task_count] -= sfrm_size*sizeof(int);
+  s_frm->pc = (uint32_t)(task-1);
+  //where to jump
+  s_frm->psr = 0x21000000;
+  //default program status word
 
-/*
-  asm volatile (
-      "push {r0-r2}\n"
-      "ldr  r0, =_memtop\n"
-      "ldr  r0, [r0]\n"
-      "sub  r0, #24\n"
-      "ldr  r1, =task_count\n"
-      "ldr  r1, [r1]\n"
-      "lsl r1, #2\n"
-      "mov r2, %[task]\n"
-      "add r0, r1\n" :: [task] "r" (task));
-  asm volatile (
-      "str r2, [r0]"
-      );
-  asm volatile (
-      "pop {r0-r2}"
-      );*/
+  tasks[task_count] = s_frm;
+  //save pointer to top of tasks stack
+  tasks[task_count] -= 1;
+  //move 'one stack' down  //sfrm_size*sizeof(int);
 
   task_count++;
   _memtop -= 0x100;
-
-  int bukakae = (int)task; //s_frm[1];
 }
 
 void task1() {
-  short la = 0;
+  int a;
+
   while(1) {
-    if (!la++) {
-      asm volatile("svc #0");
-//      asm volatile("nop");
-    }
-//    sysputc('1');
+    a=0;
+    while(a++!=1000);
+    toggle_led(0b100);
+//    sysputc('~');
   }
 }
 
 void task2() {
-  short la = 0;
+  int a;
+
   while(1) {
-//    asm volatile("wfi");
-    if (!la++) {
-    asm volatile("svc #0");
-//    asm volatile("nop");
-    }
-    //sysputc('2');
+    a=0;
+    while(a++!=1000);
+    toggle_led(0b001);
+    //sysputc('!');
   }
 }
 
-int lala(void) {
+void context_sw(void) {
   _current_task = _next_task;
   _first_time = 0;
+  toggle_led(0b100);
   sysputc('C');
-  return 5;
 }
 
 void systick(void) {
   if (!_first_time) {
-  asm volatile (\
-  "mrs r12, psp\n"\
-  "stmdb r12! , {r4-r11}\n"\
-  "msr psp, r12\n");
+    asm volatile (\
+      "mrs r12, psp\n"\
+      "stmdb r12! , {r4-r11}\n"\
+      "msr psp, r12\n");
   }
 
+  toggle_led(0b100);
   current_time++;
   sysputc(',');
+  sysputc('\n');
+  sysputc('\r');
 
   if(!_first_time) {
-  _next_task++;
-  _next_task %= task_count;
+    _next_task++;
+    _next_task %= task_count;
   }
 
   // set PendSV and initiate context switch
   (*((int*)INTCTRL)) |= 1<<28;
   if (!_first_time) {
-  asm volatile("mrs r12, psp\n"
-  "ldr r8, [r12, #8]\n"
-  "ldmfd r12! , {r4-r11}\n"
-  "msr psp, r12\n"
-  "isb");
+    asm volatile(
+      "mrs r12, psp\n"
+      "ldmfd r12! , {r4-r11}\n"
+      "msr psp, r12\n"
+      "isb");
   }
 }
 
-void c_startup() {
-
-}
-
 void c_entry(void) {
+  __heap_top = _memtop;
+  __heap_start = 0x20000500;
+
+//  ClockInit();
+  gpio_init();
 
   _memtop = __memtop - 0x100;
+  _current_task = 0;
+  _next_task = 0;
+  task_count = 0;
+  _first_time = 0;
 
   spawn_task(task1);
   spawn_task(task2);
@@ -139,14 +143,16 @@ void c_entry(void) {
   current_time = 0;
   _first_time = 1;
 
-  *((int*)STRELOAD) = 10000;
-  *((int*)STCURRENT) = 0;
-  *((int*)STCTRL) |= 3;
-  *((int*)NVIC) |= (1<<15);
+  asm volatile(" mrs r0, PRIMASK\n"
+               " cpsid i\n");
 
-  //memcpy(0x0, tbl, sizeof(fp)*20);
+  *((int*)STRELOAD) = 1000000;
+  *((int*)STCURRENT) = 100;
+  *((int*)NVIC) |= (1<<15) | (1<<14) | (1<<11) | (1<<1);
+  *((int*)STCTRL) |= 0b011; //3;
+
   sysputc('W');
 
-//  return tasks[0];
-
+  asm volatile(" mrs r0, PRIMASK\n"
+               " cpsie i\n");
 }
