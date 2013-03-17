@@ -6,7 +6,7 @@ LD = ${ARCH}-ld
 AR = ${ARCH}-ar
 OBJCOPY = ${ARCH}-objcopy
 
-CPU = cortex-m3
+CPU =
 TOOLS_VERSION = $(shell $(CC) -dumpversion)
 
 ifndef PLATFORM
@@ -14,16 +14,17 @@ PLATFORM = qemu
 endif
 
 ifdef RELEASE
-CFLAGS = -O3 -std=gnu99 -Werror -DPLATFORM=$(PLATFORM) -DRASPBERRY_PI
+CFLAGS = -O0 -std=gnu99 -Werror -DPLATFORM=$(PLATFORM) -DRASPBERRY_PI
 ASFLAGS =
 else
 CFLAGS = -O0 -g -std=gnu99 -Werror -DPLATFORM=$(PLATFORM) -DRASPBERRY_PI
 ASFLAGS = -g
 endif
 
-CFLAGS_FOR_TARGET = -mcpu=cortex-m3 -mthumb -ggdb3 #arm1176jzf-s
-ASFLAGS_FOR_TARGET = -mcpu=cortex-m3 -mthumb -ggdb3 #arm1176jzf-s
-LDFLAGS = -nostdlib -static --error-unresolved-symbols
+CFLAGS_FOR_TARGET = -mcpu=cortex-m4 -mthumb -ggdb3 -mfloat-abi=soft #arm1176jzf-s
+ASFLAGS_FOR_TARGET = -mcpu=cortex-m4 -mthumb -ggdb3 -mfloat-abi=soft #arm1176jzf-s
+LDFLAGS = -nostdlib -static
+#--error-unresolved-symbols
 
 SYSLIBS = ~/sat/lib/gcc/arm-none-eabi/4.7.3/libgcc.a
 #SYSLIBS = /usr/local/lib/gcc/$(ARCH)/$(TOOLS_VERSION)/libgcc.a
@@ -60,7 +61,7 @@ bin/kernel.img: bin/kernel.elf
 	${OBJCOPY} -O binary $< $@
 
 bin/kernel.elf: lambdapi.ld $(OBJ) $(SYSLIBS)
-	${LD} ${LDFLAGS} -T lambdapi.ld $(OBJ) $(SYSLIBS) $(NEWLIB_LIBC) $(NEWLIB_LIBM) -o $@
+	${LD} ${LDFLAGS} -T lambdapi.ld $(OBJ) $(NEWLIB_LIBC) $(NEWLIB_LIBM) $(SYSLIBS) -o $@
 
 install-newlib:
 	newlib/build-newlib.sh
