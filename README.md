@@ -3,6 +3,7 @@
 ### QEMU
 You need:
 * arm-none-eabi toolchain, support for cortex-m3/4 (for example summon-arm-toolchain)
+* qemu-system-arm from your distribution, now we have QEMU 1.2.2
 
 You don't need:
 * real HW :)
