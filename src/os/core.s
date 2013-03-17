@@ -1,4 +1,4 @@
-#include<c_entry.h>
+#include<system.h>
 
 .cpu cortex-m3
 .syntax unified
@@ -95,9 +95,11 @@ _yes_save_it:
   msr psp, r12
   isb
 
-_no_dont:
-  nop
   mov r0, #0xfffffffd
+  bx r0
+
+_no_dont:
+  mov r0, #0xfffffff9
   bx r0
 
 
@@ -134,7 +136,7 @@ yes_save_it:
 /*  str sp, []*/
 
 no_dont:
-  bl lala
+  bl context_sw
 
   ldr r0, L_next_task
   ldr r0, [r0]
@@ -150,7 +152,6 @@ no_dont:
 __WAIT:
   mrs r12, psp
   ldmfd r12! , {r4-r11}
-  ldr r3, [r12, #-28]
   msr psp, r12
   isb
 
