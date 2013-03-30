@@ -57,16 +57,19 @@ void ClockInit_lm4f(void) {
 
   // step 3
   SYSCTL_RCC2_R &= ~(SYSCTL_RCC2_SYSDIV2_M);
-  SYSCTL_RCC2_R |= SYSCTL_RCC2_SYSDIV2_5;
+  SYSCTL_RCC2_R |= SYSCTL_RCC2_SYSDIV2_2;
 
-  SYSCTL_RCC_R |= SYSCTL_RCC_USESYSDIV;
+//  SYSCTL_RCC_R |= SYSCTL_RCC_USESYSDIV;
+  SYSCTL_RCC2_R &= ~(SYSCTL_RCC2_SYSDIV2LSB);
   SYSCTL_RCC2_R |= SYSCTL_RCC2_DIV400;
 
   // step 4
   while (!(SYSCTL_RIS_R & SYSCTL_RIS_PLLLRIS));
   // step 5
   SYSCTL_RCC_R |= SYSCTL_RCC_BYPASS;
-  SYSCTL_RCC2_R |= SYSCTL_RCC2_BYPASS2;
+  SYSCTL_RCC2_R &= ~(SYSCTL_RCC2_BYPASS2);
+//  SYSCTL_RCC_R |= SYSCTL_RCC_BYPASS;
+//  SYSCTL_RCC2_R |= SYSCTL_RCC2_BYPASS2;
 
 }
 
@@ -131,5 +134,5 @@ void ClockInit_stm32 ( void )
 
 void ClockInit(void) {
   //ClockInit_stm32();
-  //ClockInit_lm4f();
+  ClockInit_lm4f();
 }
