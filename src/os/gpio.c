@@ -5,33 +5,43 @@
 void gpio_init_lm4f();
 void gpio_init_stm32();
 
+void gpio_interrupt() {
+  toggle_led(0b010);
+}
 
 void toggle_led(int id) {
-  id &= 0b101;
+  id &= 0b111;
+#ifdef LM4F
   GPIO_PORTF_DATA_R ^= (id << 1);
+#endif
 }
 
 
 void gpio_init(void) {
-//  gpio_init_stm32();
+#ifdef STM32
+  gpio_init_stm32();
+#endif
+#ifdef LM4F
   gpio_init_lm4f();
+#endif
 }
 
 void gpio_init_lm4f(void) {
   SYSCTL_RCGCGPIO_R |= 0x20; // clock gate to port F
-  GPIO_PORTF_DIR_R |= 0b11111110; //0x7 << 1; // Set Led's as outputs
+  GPIO_PORTF_DIR_R |= 0b11101110; //0x7 << 1; // Set Led's as outputs
   GPIO_PORTF_DEN_R |= 0b11111110; //0x7 << 1; // for LED's
 
   GPIO_PORTF_DATA_R = 0;
 
-  toggle_led(0b010);
+  toggle_led(0b000);
 
 
-  SYSCTL_RCGCGPIO_R |= 0X1; // clock gate to port F
-  //GPIO_PORTA_DIR_R = 0b0; // PA2 as input
-  //GPIO_PORTA_DEN_R = 0b100; // PA2
-
-  //GPIO_PORTA_ICR_R |= 0b100;
+//  SYSCTL_RCGCGPIO_R |= 0X1; // clock gate to port A
+/*  GPIO_PORTF_DEN_R &= ~(1<<4); // PF4
+  GPIO_PORTF_DIR_R &= ~(1<<4); // PF4 as input
+  GPIO_PORTF_DR2R_R |= 1<<4;
+  GPIO_PORTF_DEN_R |= 1<<4; // PF4
+*/
 
 }
 

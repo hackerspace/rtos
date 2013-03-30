@@ -5,4 +5,5 @@ void gpio_init(void);
 
 void toggle_led(int id);
 
+void gpio_interrupt();
 #endif
