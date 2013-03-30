@@ -4,7 +4,7 @@
 .syntax unified
 .thumb
 
-.word   0x20008000  /* stack top address */
+.word   0x20002000  /* stack top address */
 .word   _start      /* 1 Reset */
 .word   hang2       /* 2 NMI */
 .word   hang3       /* 3 HardFault */
@@ -20,13 +20,148 @@
 .word   hang        /* 13 RESERVED */
 .word   _ctx_switcher        /* 14 PendSV */
 .word   _systick        /* 15 SysTick */
-.word   hang        /* 16 External Interrupt(0) */
+.word   gpio_interrupt        /* 16 External Interrupt(0) */
 .word   hang        /* 17 External Interrupt(1) */
 .word   hang        /* 18 External Interrupt(2) */
 .word   hang        /* 19 ...   */
+.word   hang        /* 19 ...   */
+.word   uart0_interrupt        /* 21 UART0   */
+.word   uart1_interrupt        /* 19 ...   */
+.word   hang        /* 19 ...   */
+.word   hang        /* 19 ...   */
+.word   hang        /* 19 ...   */
+.word   hang        /* 19 ...   */
+.word   hang        /* 19 ...   */
+.word   hang        /* 19 ...   */
+.word   hang        /* 19 ...   */
+.word   hang        /* 19 ...   */
+.word   hang        /* 19 ...   */
+.word   hang        /* 19 ...   */
+.word   hang        /* 19 ...   */
+.word   hang        /* 19 ...   */
+.word   hang        /* 19 ...   */
+.word   hang        /* 19 ...   */
+.word   hang        /* 19 ...   */
+.word   hang        /* 19 ...   */
+.word   hang        /* 19 ...   */
+.word   hang        /* 19 ...   */
+.word   hang        /* 19 ...   */
+.word   hang        /* 19 ...   */
+.word   hang        /* 19 ...   */
+.word   hang        /* 19 ...   */
+.word   hang        /* 19 ...   */
+.word   hang        /* 19 ...   */
+.word   gpio_interrupt        /* 19 ...   */
+.word   hang        /* 19 ...   */
+.word   hang        /* 19 ...   */
+.word   hang        /* 19 ...   */
+.word   hang        /* 19 ...   */
+.word   hang        /* 19 ...   */
+.word   hang        /* 19 ...   */
+.word   hang        /* 19 ...   */
+.word   hang        /* 19 ...   */
+.word   hang        /* 19 ...   */
+.word   hang        /* 19 ...   */
+.word   hang        /* 19 ...   */
+.word   hang        /* 19 ...   */
+.word   hang        /* 19 ...   */
+.word   hang        /* 19 ...   */
+.word   hang        /* 19 ...   */
+.word   hang        /* 19 ...   */
+.word   hang        /* 19 ...   */
+.word   hang        /* 19 ...   */
+.word   hang        /* 19 ...   */
+.word   hang        /* 19 ...   */
+.word   hang        /* 19 ...   */
+.word   hang        /* 19 ...   */
+.word   hang        /* 19 ...   */
+.word   hang        /* 19 ...   */
+.word   hang        /* 19 ...   */
+.word   hang        /* 19 ...   */
+.word   hang        /* 19 ...   */
+.word   hang        /* 19 ...   */
+.word   hang        /* 19 ...   */
+.word   hang        /* 19 ...   */
+.word   hang        /* 19 ...   */
+.word   hang        /* 19 ...   */
+.word   hang        /* 19 ...   */
+.word   hang        /* 19 ...   */
+.word   hang        /* 19 ...   */
+.word   hang        /* 19 ...   */
+.word   hang        /* 19 ...   */
+.word   hang        /* 19 ...   */
+.word   hang        /* 19 ...   */
+.word   hang        /* 19 ...   */
+.word   hang        /* 19 ...   */
+.word   hang        /* 19 ...   */
+.word   hang        /* 19 ...   */
+.word   hang        /* 19 ...   */
+.word   hang        /* 19 ...   */
+.word   hang        /* 19 ...   */
+.word   hang        /* 19 ...   */
+.word   hang        /* 19 ...   */
+.word   hang        /* 19 ...   */
+.word   hang        /* 19 ...   */
+.word   hang        /* 19 ...   */
+.word   hang        /* 19 ...   */
+.word   hang        /* 19 ...   */
+.word   hang        /* 19 ...   */
+.word   hang        /* 19 ...   */
+.word   hang        /* 19 ...   */
+.word   hang        /* 19 ...   */
+.word   hang        /* 19 ...   */
+.word   hang        /* 19 ...   */
+.word   hang        /* 19 ...   */
+.word   hang        /* 19 ...   */
+.word   hang        /* 19 ...   */
+.word   hang        /* 19 ...   */
+.word   hang        /* 19 ...   */
+.word   hang        /* 19 ...   */
+.word   hang        /* 19 ...   */
+.word   hang        /* 19 ...   */
+.word   hang        /* 19 ...   */
+.word   hang        /* 19 ...   */
+.word   hang        /* 19 ...   */
+.word   hang        /* 19 ...   */
+.word   hang        /* 19 ...   */
+.word   hang        /* 19 ...   */
+.word   hang        /* 19 ...   */
+.word   hang        /* 19 ...   */
+.word   hang        /* 19 ...   */
+.word   hang        /* 19 ...   */
+.word   hang        /* 19 ...   */
+.word   hang        /* 19 ...   */
+.word   hang        /* 19 ...   */
+.word   hang        /* 19 ...   */
+.word   hang        /* 19 ...   */
+.word   hang        /* 19 ...   */
+.word   hang        /* 19 ...   */
+.word   hang        /* 19 ...   */
+.word   hang        /* 19 ...   */
+.word   hang        /* 19 ...   */
+.word   hang        /* 19 ...   */
+.word   hang        /* 19 ...   */
+.word   hang        /* 19 ...   */
+.word   hang        /* 19 ...   */
+.word   hang        /* 19 ...   */
+.word   hang        /* 19 ...   */
+.word   hang        /* 19 ...   */
+.word   hang        /* 19 ...   */
+.word   hang        /* 19 ...   */
+.word   hang        /* 19 ...   */
+.word   hang        /* 19 ...   */
+.word   hang        /* 19 ...   */
+.word   hang        /* 19 ...   */
+.word   hang        /* 19 ...   */
+.word   hang        /* 19 ...   */
+.word   hang        /* 19 ...   */
+.word   hang        /* 19 ...   */
+.word   hang        /* 19 ...   */
+.word   hang        /* 19 ...   */
+.word   hang        /* 19 ...   */
 
 .global __memtop
-__memtop:         .word   0x20008000
+__memtop:         .word   0x20002000
 .global __psp_stack_size
 __psp_stack_size: .word   0x100
 .global __msp_stack_size
