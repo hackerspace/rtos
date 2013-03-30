@@ -17,7 +17,8 @@ ifdef RELEASE
 CFLAGS = -O0 -std=gnu99 -Werror -DPLATFORM=$(PLATFORM) -DRASPBERRY_PI
 ASFLAGS =
 else
-CFLAGS = -O0 -g -std=gnu99 -Werror -DPLATFORM=$(PLATFORM) -DRASPBERRY_PI
+CFLAGS = -Os -g -std=gnu99 -Werror -DPLATFORM=$(PLATFORM) -DRASPBERRY_PI
+#-DLM4F
 ASFLAGS = -g
 endif
 
@@ -33,7 +34,7 @@ NEWLIB_DIR = newlib/usr/$(ARCH)
 NEWLIB_LIBC = $(NEWLIB_DIR)/lib/thumb/$(CPU)/libc.a
 NEWLIB_LIBM = $(NEWLIB_DIR)/lib/thumb/$(CPU)/libm.a
 
-MODULES := os
+MODULES := os monitor
 #bsp bsp/generic bsp/$(PLATFORM) lib lambda
 SRC_DIR := $(addprefix src/,$(MODULES))
 INC_DIR := $(addsuffix /include,$(SRC_DIR))
