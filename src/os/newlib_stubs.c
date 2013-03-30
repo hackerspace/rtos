@@ -33,6 +33,7 @@
 #include <uart.h>
 //#include "pl011.h"
 
+#include <system.h>
 
 // Allocate or free memory
 caddr_t _sbrk(int incr) {
@@ -68,9 +69,11 @@ void _exit(int arg) {
   while (1);
 }
 
+// imp.
 int _getpid() {
-      return 1;
-    }
+  return _current_task;
+}
+
 int _kill(int pid, int sig){
       errno=EINVAL;
       return(-1);
@@ -82,10 +85,20 @@ int _lseek(int file, int ptr, int dir) { return 0; }
 
 int _open(const char *name, int flags, int mode) { return -1; }
 
+// part. imp.
 int _read(int file, char *ptr, int len) {
   //return pl011_gets(ptr, len);
+  int a = 0;
+  for (a = 0; a < len; a++) {
+    *ptr++ = sysgetc();
+    //if (*(ptr-1) == '\n' || *(ptr-1) == 0x4)
+    //  break;
+  }
+  return a;
+
 }
 
+// part. imp.
 int _write(int file, char *ptr, int len) {
 //  pl011_puts(ptr, len);
 
