@@ -1,5 +1,6 @@
 #include <system.h>
 #include <uart.h>
+#include <lm4f120h5qr.h>
 #define GET32(x) (*(int*)(x))
 #define PUT32(x,y) (*(int*)(x)) = y
 
@@ -19,7 +20,7 @@
 #define GPIOABASE 0x40020000
 #define GPIOA_MODER (GPIOABASE+0x00)
 
-#ifdef __STM_
+#ifdef STM32
 
 #define USART2_BASE 0x40004400
 #define USART2_SR (USART2_BASE+0x00)
@@ -32,7 +33,7 @@
 #define GPIOA_AFRL (GPIOABASE+0x20)
 #define GPIOA_OTYPER (GPIOABASE+0x04)
 
-#endif
+#else
 
 #define USART2_BASE 0x4000e000
 #define USART2_SR (USART2_BASE+0x04)
@@ -45,10 +46,42 @@
 #define GPIOA_AFRL (GPIOABASE+0x20)
 #define GPIOA_OTYPER (GPIOABASE+0x04)
 
+#endif
 
+
+int uart_init(void) {
+  UART0_CTL_R &= ~0b1;
+  UART0_IM_R |= 1<<4;
+  UART0_CTL_R |= 0b1;
+  //UART0_ICR_R |= 1<<4;
+#ifdef LM4F
+  SYSCTL_RCGCUART_R |= 0b10; // clock gate to UART1
+  SYSCTL_RCGCGPIO_R |= 0b10; // clock gate to port B
+  GPIO_PORTB_AFSEL_R |= 0b11;
+  GPIO_PORTB_DEN_R  |= 0b00;
+  GPIO_PORTB_DIR_R  |= 0b00;
+//  GPIO_PORTB_ODR_R  &= ~0b11;
+  GPIO_PORTB_PUR_R |= 0b00;
+  GPIO_PORTB_PCTL_R |= 0x1;
+  UART1_CTL_R &= ~0b1; // disable uart1
+  UART1_CTL_R &= ~(0b11 << 8); //rxe, txe
+
+  UART1_IBRD_R = 10; // from datasheet p.861
+  UART1_FBRD_R = 54;
+  UART1_LCRH_R = 0x60;
+  UART1_CC_R   = 0x0; // system clock
+  // no dma
+  // and enable
+
+  UART1_CTL_R |= 0b11 << 8; //rxe, txe
+  UART1_CTL_R |= 0b1; // uarten
+//  GPIO_PORTB_DEN_R  |= 0b11;
+//  UART0_CTL_R |= 0b1;
+#endif
+}
 
 //-------------------------------------------------------------------
-int uart_init ( void )
+int uart_init_ ( void )
 {
     unsigned int ra;
 
@@ -104,16 +137,44 @@ unsigned int uart_getc ( void )
 
 void sysputc___(char mychar) {uart_putc(mychar);};
 
-void sysputc(char mychar) {toggle_led(0b100);};
+void sysputc_(char mychar) {toggle_led(0b100);};
 
 void sysputc__(char c) {};
 
-void sysputc_(char mychar) {
-  //#define UART0_DATA ((volatile unsigned long *)(0x4000C000))
-  //#define UART0_FLAG ((volatile unsigned long *)(0x4000C018))
-  #define UART0_DATA ((volatile unsigned long *)(0x4000C004))
-  #define UART0_FLAG ((volatile unsigned long *)(0x4000C000))
-  while ((*UART0_FLAG & 0x20) != 0);
-  *UART0_DATA = mychar;
+#include <stdio.h>
+void print_num(int num);
+void term_goto(int x, int y);
+
+void uart1_interrupt() {
+  term_goto(10,10);
+  sysputc('x');
+}
+void uart0_interrupt() {
+  term_goto(12,10);
+  sysputc('x');
+}
+
+//#ifdef LM4F
+  #define UART1_DATA ((volatile unsigned long *)(0x4000c000))
+  #define UART1_FLAG ((volatile unsigned long *)(0x4000c018))
+/*#else
+//for qemu, really it's uart0
+  #define UART1_DATA ((volatile unsigned long *)(0x4000C004))
+  #define UART1_FLAG ((volatile unsigned long *)(0x4000C000))
+#endif*/
+void sysputc(char mychar) {
+
+  while ((*UART1_FLAG & 0x20) != 0);
+  *UART1_DATA = mychar;
   return;
+}
+
+int sysgetc(void) {
+
+  while ((*UART1_FLAG & (1<<4)) != 0);
+  int d = *UART1_DATA;
+//  term_goto(22,10);
+//  sysputc(d);
+  return d;
+
 }
