@@ -34,7 +34,7 @@ extern fp _reset;
 int _memtop;
 extern int __memtop;
 
-struct stack_frame *tasks[4];
+struct task tasks[4];
 int _current_task = 0;
 int _next_task = 0;
 int task_count = 0;
@@ -43,8 +43,20 @@ int _first_time = 0;
 int __heap_top;
 int __heap_start;
 
-void syscall(int a) {
-  sysputc(_current_task+'1');
+void syscall(int* svc_ins, struct stack_frame *psp) {
+/*
+  int call_id = psp->r0;
+  int arg0    = psp->r1;
+  int arg1    = psp->r2;
+  int arg2    = psp->r3;
+
+  switch (call_id) {
+    case 0x48:
+      toggle_led(arg0);
+      break;
+  } */
+
+  //sysputc(_current_task+'1');
 }
 
 void spawn_task(fp task) {
@@ -56,42 +68,57 @@ void spawn_task(fp task) {
   s_frm->psr = 0x21000000;
   //default program status word
 
-  tasks[task_count] = s_frm;
+  tasks[task_count].sp = s_frm;
   //save pointer to top of tasks stack
-  tasks[task_count] -= 1;
+  tasks[task_count].sp -= 1;
   //move 'one stack' down  //sfrm_size*sizeof(int);
+  tasks[task_count].flags = 0;
 
   task_count++;
   _memtop -= 0x100;
 }
 
+void idle_task() {
+  while (1) {
+    asm volatile ("wfi");
+  }
+}
+
 void task1() {
   int a;
+
+//printf("task 1\n\r");
+
+//while(1) {};
 
   while(1) {
     a=0;
     while(a++!=1000);
     toggle_led(0b100);
-//    sysputc('~');
+  //  printf("hahah");
+    sysputc('~');
   }
 }
 
 void task2() {
-  int a;
-
+  int a = 0;
+//printf("task 2\n\r");
+//scanf("%d\n", &a);
+//printf("you've entered %a, you bitch!\t\n");
   while(1) {
     a=0;
     while(a++!=1000);
     toggle_led(0b001);
-    //sysputc('!');
+//    asm volatile("mov r0, #1\n svc #0");
+    sysputc('!');
   }
 }
 
 void context_sw(void) {
   _current_task = _next_task;
   _first_time = 0;
-  toggle_led(0b100);
-  sysputc('C');
+//  toggle_led(0b100);
+  //sysputc('C');
 }
 
 void systick(void) {
@@ -104,9 +131,9 @@ void systick(void) {
 
   toggle_led(0b100);
   current_time++;
-  sysputc(',');
-  sysputc('\n');
-  sysputc('\r');
+  //sysputc(',');
+  //sysputc('\n');
+  //sysputc('\r');
 
   if(!_first_time) {
     _next_task++;
@@ -124,12 +151,14 @@ void systick(void) {
   }
 }
 
+extern void monitor_main();
 void c_entry(void) {
   __heap_top = _memtop;
   __heap_start = 0x20000500;
 
-//  ClockInit();
+  ClockInit();
   gpio_init();
+  uart_init();
 
   _memtop = __memtop - 0x100;
   _current_task = 0;
@@ -137,8 +166,10 @@ void c_entry(void) {
   task_count = 0;
   _first_time = 0;
 
-  spawn_task(task1);
-  spawn_task(task2);
+  spawn_task(idle_task);
+/*  spawn_task(task1);
+  spawn_task(task2);*/
+  spawn_task(monitor_main);
 
   current_time = 0;
   _first_time = 1;
@@ -146,10 +177,15 @@ void c_entry(void) {
   asm volatile(" mrs r0, PRIMASK\n"
                " cpsid i\n");
 
-  *((int*)STRELOAD) = 1000000;
+  //GPIO_PORTF_IM_R |= 1<<4;
+  //GPIO_PORTF_ICR_R |= 0b10000;
+
+  *((int*)STRELOAD) = 10000;
   *((int*)STCURRENT) = 100;
-  *((int*)NVIC) |= (1<<15) | (1<<14) | (1<<11) | (1<<1);
+  *((int*)NVIC) |= (1<<22) | (1<<21) | (1<<16) | (1<<15) | (1<<14) | (1<<11) | (1<<1);
+  //*(((int*)NVIC)+1) |= (1<<(46-32));
   *((int*)STCTRL) |= 0b011; //3;
+
 
   sysputc('W');
 

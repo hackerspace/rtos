@@ -28,26 +28,32 @@ L_first: .word _first_time
 .thumb_func
 .global _svcall
 _svcall:
-/*  mrs r12, psp
+  mrs r12, psp
   stmdb r12! , {r4-r11}
   msr psp, r12
-  isb*/
+  isb
 
-  mov r0, #66
-  bl syscall
-
-/*  mrs r12, psp
-  ldmfd r12! , {r4-r11}
-  msr psp, r12
-  isb*/
-
-  /* do some stack adjustments */
   mrs r1, psp
   mov r2, #24
   add r2, r1
   ldr r3, [r2]
   sub r3, #2      /* decrement return address by 2 */
-  str r3, [r2]
+  ldr r0, [r3]    /* and send it as a 1st arg to syscall */
+
+  bl syscall
+
+  mrs r12, psp
+  ldmfd r12! , {r4-r11}
+  msr psp, r12
+  isb
+
+  /* do some stack adjustments */
+/*  mrs r1, psp
+  mov r2, #24
+  add r2, r1
+  ldr r3, [r2]
+  sub r3, #2      /* decrement return address by 2 */
+/*  str r3, [r2] */
 
   mov r0, #0xfffffffd
   bx r0
@@ -127,7 +133,7 @@ yes_save_it:
 /* we don't need to load MSR since we do only ASM now*/
   ldr r0, L_current_task
   ldr r0, [r0]
-  lsl r0, #2
+  lsl r0, #3
   ldr r1, L_tasks
   add r0, r1
   mrs r2, psp
@@ -140,7 +146,7 @@ no_dont:
 
   ldr r0, L_next_task
   ldr r0, [r0]
-  lsl r0, #2
+  lsl r0, #3
   ldr r1, L_tasks
   add r0, r1
   ldr r2, [r0]
