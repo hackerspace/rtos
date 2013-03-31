@@ -6,6 +6,8 @@
 #include <stdio.h>
 #include <gpio.h>
 
+#include <unistd.h>
+
 #define RCCBASE   0x40023800
 #define GPIODBASE 0x40020C00
 #define GET32(x) (*(int*)(x))
@@ -43,18 +45,60 @@ int _first_time = 0;
 int __heap_top;
 int __heap_start;
 
+void syscall_(int a,int b,int c,int d) {
+  asm volatile("swi #0");
+}
+
+void pche(int d) {
+  syscall_(0, d,0,0);
+}
+
+int svc_val() {
+  // TODO: this is VERY BAD
+  // and will probably NOT work in presence of MPU
+  return tasks[_current_task].val;
+}
+
+int kokotina(int a) {
+  int r0 = 1, r1 = a, r2, r3;
+  syscall_(r0, r1, r2, r3);
+
+  return svc_val();
+}
+
+int syscall_count() {
+  int r0 = 2, r1, r2, r3;
+  syscall_(r0, r1, r2, r3);
+  return svc_val();
+}
+
+void print_num(int num);
 void syscall(int* svc_ins, struct stack_frame *psp) {
-/*
+  static int count = 0;
+
+  count++;
+
   int call_id = psp->r0;
   int arg0    = psp->r1;
   int arg1    = psp->r2;
   int arg2    = psp->r3;
 
   switch (call_id) {
+    case 0:
+      printf("ahoj ");print_num(arg0);fflush(stdout);
+      printf("\n\r");
+      break;
+    case 1:
+//      psp->r0 = (_current_task+2) * arg0;
+      tasks[_current_task].val = (_current_task+2) * arg0;
+      break;
+    case 2:
+      tasks[_current_task].val = count;
+      break;
     case 0x48:
       toggle_led(arg0);
       break;
-  } */
+  }
 
   //sysputc(_current_task+'1');
 }
@@ -79,7 +123,25 @@ void spawn_task(fp task) {
 }
 
 void idle_task() {
+  write(2, "\ec",2);
+  uart_setecho(1, 1);
+
   while (1) {
+    char b[16];
+//    scanf("%s\n", b);
+    read(2, b, 16);
+    write(2, "\r\n", 2);
+    if (strncmp(b, "echo", 4) == 0) {
+      write(2, b+5, 16-5);
+      write(2, "\r\n", 2);
+      pche(666);
+      int la = kokotina(17);
+      print_num(la);fflush(stdout);
+      write(3, "\r\nhelon\r\n", 7);
+    }
+    //FILE *s1 = fopen("s1", "w");
+//    fprintf(stderr, "helon\n");//fflush(stderr);
+//    write(3, "helon\n", 6);
     asm volatile ("wfi");
   }
 }
@@ -93,10 +155,15 @@ void task1() {
 
   while(1) {
     a=0;
-    while(a++!=1000);
-    toggle_led(0b100);
+    while(a++!=10000);
+//    toggle_led(0b100);
   //  printf("hahah");
+//    printf("!\n\r");
     sysputc('~');
+    if (a%3 == 0) {
+      sysputc('\n');
+      sysputc('\r');
+    }
   }
 }
 
@@ -107,10 +174,15 @@ void task2() {
 //printf("you've entered %a, you bitch!\t\n");
   while(1) {
     a=0;
-    while(a++!=1000);
-    toggle_led(0b001);
+    while(a++!=10000);
+//    toggle_led(0b001);
 //    asm volatile("mov r0, #1\n svc #0");
+    //printf("!\n\r");
     sysputc('!');
+    if (a%3 == 0) {
+      sysputc('\n');
+      sysputc('\r');
+    }
   }
 }
 
@@ -167,8 +239,8 @@ void c_entry(void) {
   _first_time = 0;
 
   spawn_task(idle_task);
-/*  spawn_task(task1);
-  spawn_task(task2);*/
+//  spawn_task(task1);
+//  spawn_task(task2);
   spawn_task(monitor_main);
 
   current_time = 0;
@@ -186,9 +258,12 @@ void c_entry(void) {
   //*(((int*)NVIC)+1) |= (1<<(46-32));
   *((int*)STCTRL) |= 0b011; //3;
 
-
+//  NVIC_PEND0_R |= NVIC_PEND0_INT21;
+  NVIC_EN0_R |= NVIC_EN0_INT5;
+  NVIC_EN0_R |= NVIC_EN0_INT6;
   sysputc('W');
 
   asm volatile(" mrs r0, PRIMASK\n"
                " cpsie i\n");
+  (*(int*)(0xe000ef00)) = 21;
 }

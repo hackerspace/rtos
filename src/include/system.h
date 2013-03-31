@@ -19,6 +19,7 @@ struct stack_frame {
 struct task {
   struct stack_frame *sp;
   int flags;
+  int val;
 };
 
 extern struct task tasks[];
@@ -33,5 +34,10 @@ void systick(void);
 void context_sw(void);
 //void syscall(int);
 void syscall(int* svc_ins, struct stack_frame *psp);
+
+int syscall_count();
+extern int uart_b_tx;
+extern int uart_b_rx;
+
 #endif
 
