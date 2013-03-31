@@ -1,8 +1,12 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <string.h>
 
 #include <lm4f120h5qr.h>
+#include <uart.h>
+
+#include <system.h>
 
 void print_num(int num);
 
@@ -43,16 +47,18 @@ void term_hline(int x, int y, int len, char c) {
 
 int FUHA = 0;
 void get_terminal_size(int *x, int *y);
-void statusbar() {
-  int x, y;
-  printf("\e7"); //save cursor
+void statusbar(char *buf, int x, int y) {
+//  int x, y;
+
   get_terminal_size(&x, &y);
+  printf("\e7"); //save cursor
+  fflush(stdout);
   term_set_color(7, 1);
   term_hline(1,1,x,' ');
   term_goto(x-10, 1); printf("monitor");
 
   fflush(stdout);
-  term_goto(2, 1); print_num(FUHA++);
+  term_goto(2, 1); print_num(FUHA);
   fflush(stdout);
 
   term_goto(15, 1);
@@ -66,33 +72,81 @@ void statusbar() {
   printf((UART0_MIS_R & (1<<4)) ? "ON" : "OFF");
   fflush(stdout);
 
+  term_goto(33, 1);
+  printf("'%s'",buf);
+  fflush(stdout);
 
   printf("\e8"); //restore cursor
-  term_set_scrolling(2, y);
-//  term_goto(1, y/2);
+  fflush(stdout);
+  term_set_scrolling(3, y);
+  fflush(stdout);
+  term_set_color(9,9);
+  term_goto(1, y);
 }
 
 void monitor_main(void) {
 
   FUHA = 0;
   term_reset();
-  statusbar();
-  term_set_color(9,9);
+  int x=60,y=15;
+  get_terminal_size(&x, &y);
+  statusbar("",x,y);
 
   term_hide_cursor();
   term_goto(2,2);
+  printf("\e[?67h");fflush(stdout);
 
-
+/*
   int x, y;
   get_terminal_size(&x, &y);
   for (int i=0; i<y*2; i++) {
     print_num(i);
     printf("\r\n"); fflush(stdout);
-  }
+  }*/
 
-  asm volatile ("svc #0");
+  //asm volatile ("svc #0");
+  char buf[16]="\0"; int bufc = 0;
   while(1){
-    statusbar();
+    int c = -1;
+
+    if (uart_notempty(0)) {
+      c = uart_getc(0);
+      switch (c) {
+        case '\n':
+        case '\r':
+          if (strncmp("help", buf, 4) == 0) {
+            printf("commands:\nhelp\nstats\n");
+          } else if (strncmp("stats", buf, 5) == 0) {
+            int cnt = syscall_count();
+            printf("syscalls: ");print_num(cnt);putchar('\n');
+            fflush(stdout);
+            printf("uart tx/rx: ");print_num(uart_b_tx);
+            putchar('/');print_num(uart_b_rx);
+            putchar('\n');
+          } else {
+            printf("unknown cmd: '%s'\n", buf);
+          }
+          fflush(stdout);
+
+          memset(buf, 0, 16);
+          bufc = 0;
+          break;
+        case '\b':
+        case 0x7f:
+          if (!bufc)
+            break;
+          buf[--bufc] = 0;
+          break;
+        default:
+          if (bufc<15) {
+            buf[bufc++] = c;
+          }
+          break;
+      }
+    }
+    if (FUHA % 0xc == 0)
+      statusbar(buf, x, y);
+    FUHA++;
     asm volatile("wfi");
   };
   return ;
@@ -111,11 +165,13 @@ void readupto(char *buf, int *cnt, char sep, int len) {
 
 void print_num(int num) {
   char p[16]; int i = 0;
-  while (num!=0) {
+  p[0] = '0';
+  do {
     int x = num - 10*(num/10);
     num /= 10;
     p[i++] = (x+'0');
-  }
+  } while (num!=0);
+//  i = !i? 1: 0;
   while (i--) {
     putchar(p[i]);
   }
