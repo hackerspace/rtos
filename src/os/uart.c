@@ -48,12 +48,41 @@
 
 #endif
 
+#define _buf_max  64
+#define _uarts  2
+
+typedef struct {
+  char buf[_buf_max];
+  char cnt;
+  char top;
+  char bot;
+  char echo;
+} ring_buf;
+ring_buf _buf[2]; //two uarts
+
+int uart_b_tx = 0;
+int uart_b_rx = 0;
 
 int uart_init(void) {
+  for (int i = 0; i < _uarts; i++) {
+    _buf[i].cnt = 0;
+    _buf[i].top = 0;
+    _buf[i].bot = 0;
+    _buf[i].echo = 0;
+  }
+
   UART0_CTL_R &= ~0b1;
+//  UART0_ICR_R |= 1<<4;
   UART0_IM_R |= 1<<4;
+  UART0_CTL_R |= 0b11 << 8; //rxe, txe
   UART0_CTL_R |= 0b1;
-  //UART0_ICR_R |= 1<<4;
+
+  UART1_CTL_R &= ~0b1;
+//  UART1_ICR_R |= 1<<4;
+  UART1_IM_R |= 1<<4;
+  UART1_CTL_R |= 0b11 << 8; //rxe, txe
+  UART1_CTL_R |= 0b1;
+
 #ifdef LM4F
   SYSCTL_RCGCUART_R |= 0b10; // clock gate to UART1
   SYSCTL_RCGCGPIO_R |= 0b10; // clock gate to port B
@@ -120,61 +149,132 @@ int uart_init_ ( void )
     PUT32(USART2_CR1,(1<<13)|(1<<3)|(1<<2));
     return(0);
 }
-//-------------------------------------------------------------------
-void uart_putc ( unsigned int x )
-{
+/*
+void uart_putc ( unsigned int x ) {
     while (( GET32(USART2_SR) & (1<<7)) == 0) continue;
     PUT32(USART2_DR,x);
 }
-//-------------------------------------------------------------------
-unsigned int uart_getc ( void )
-{
+unsigned int uart_getc ( void ) {
     while (( GET32(USART2_SR) & (1<<5)) == 0) continue;
     return(GET32(USART2_DR));
-}
+}*/
 
 
 
-void sysputc___(char mychar) {uart_putc(mychar);};
+//void sysputc___(char mychar) {uart_putc(mychar);};
 
-void sysputc_(char mychar) {toggle_led(0b100);};
+//void sysputc_(char mychar) {toggle_led(0b100);};
 
-void sysputc__(char c) {};
+//void sysputc__(char c) {};
 
 #include <stdio.h>
 void print_num(int num);
 void term_goto(int x, int y);
 
-void uart1_interrupt() {
-  term_goto(10,10);
-  sysputc('x');
-}
-void uart0_interrupt() {
-  term_goto(12,10);
-  sysputc('x');
-}
 
 //#ifdef LM4F
-  #define UART1_DATA ((volatile unsigned long *)(0x4000c000))
-  #define UART1_FLAG ((volatile unsigned long *)(0x4000c018))
+  #define UART0_DATA ((volatile unsigned long *)(0x4000c000))
+  #define UART0_FLAG ((volatile unsigned long *)(0x4000c018))
+  #define UART1_DATA ((volatile unsigned long *)(0x4000d000))
+  #define UART1_FLAG ((volatile unsigned long *)(0x4000d018))
 /*#else
 //for qemu, really it's uart0
   #define UART1_DATA ((volatile unsigned long *)(0x4000C004))
   #define UART1_FLAG ((volatile unsigned long *)(0x4000C000))
 #endif*/
-void sysputc(char mychar) {
 
+
+void rbuf_put(int id, int what) {
+  if (_buf[id].cnt < _buf_max) {
+    _buf[id].buf[_buf[id].top] = (char)what;
+    _buf[id].top++;
+    if (_buf[id].top >= _buf_max) {
+      _buf[id].top = 0;
+    }
+    _buf[id].cnt++;
+  }
+//  sysputc(x);
+}
+
+void uart1_interrupt() {
+//  term_goto(10,10);
+  
+  int d = sysgetc1();
+  if (_buf[1].echo) {
+    if (d == '\n')
+      sysputc1('\r');
+    sysputc1(d);
+  }
+  rbuf_put(1, d);
+
+}
+
+
+void uart0_interrupt() {
+  int d = sysgetc();
+  rbuf_put(0, d);
+  if (_buf[0].echo) {
+    if (d == '\n')
+      sysputc('\r');
+    sysputc(d);
+  }
+//  UART0_ICR_R |= 1<<4;
+//  term_goto(12,10);
+}
+
+
+void sysputc1(char mychar) {
   while ((*UART1_FLAG & 0x20) != 0);
   *UART1_DATA = mychar;
+  uart_b_tx++;
+  return;
+}
+
+int sysgetc1(void) {
+  while ((*UART1_FLAG & (1<<4)) != 0);
+  int d = *UART1_DATA;
+  uart_b_rx++;
+  return d;
+}
+
+void sysputc(char mychar) {
+  while ((*UART0_FLAG & 0x20) != 0);
+  *UART0_DATA = mychar;
+  uart_b_tx++;
   return;
 }
 
 int sysgetc(void) {
+  while ((*UART0_FLAG & (1<<4)) != 0);
+  int x = *UART0_DATA;
+  uart_b_rx++;
+  return x;
+}
 
-  while ((*UART1_FLAG & (1<<4)) != 0);
-  int d = *UART1_DATA;
-//  term_goto(22,10);
-//  sysputc(d);
-  return d;
+int rbuf_get(int id) {
+  //if (!_buf[id].cnt) return 0;
+  while (!_buf[id].cnt) {
+    asm volatile ("wfi");
+  };
+  int x = _buf[id].buf[_buf[id].bot];
+  _buf[id].bot++;
+  if (_buf[id].bot >= _buf_max) {
+    _buf[id].bot = 0;
+  }
+  _buf[id].cnt--;
+  return x;
+}
 
+//0 - uart0
+//1 - uart1
+int uart_getc(int dev) {
+  return rbuf_get(dev);
+}
+
+int uart_notempty(int dev) {
+  return _buf[dev].cnt;
+}
+
+int uart_setecho(int dev, int enable) {
+  _buf[dev].echo = enable;
 }

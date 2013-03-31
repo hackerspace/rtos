@@ -34,6 +34,8 @@
 //#include "pl011.h"
 
 #include <system.h>
+#include <string.h>
+#include <stdio.h>
 
 // Allocate or free memory
 caddr_t _sbrk(int incr) {
@@ -83,16 +85,28 @@ int _isatty(int file) { return 1; }
 
 int _lseek(int file, int ptr, int dir) { return 0; }
 
-int _open(const char *name, int flags, int mode) { return -1; }
+int _open(const char *name, int flags, int mode) {
+  if (strcmp(name, "s0")) {
+    return 0;
+  } else if (strcmp(name, "s1")) {
+    return 3;
+  }
+  return -1;
+}
 
 // part. imp.
 int _read(int file, char *ptr, int len) {
   //return pl011_gets(ptr, len);
   int a = 0;
   for (a = 0; a < len; a++) {
-    *ptr++ = sysgetc();
-    //if (*(ptr-1) == '\n' || *(ptr-1) == 0x4)
-    //  break;
+    *ptr = uart_getc(file == 2 ? 1 : 0);
+//    sysputc(*ptr);
+    switch(*ptr++) {
+      case 0:
+      case '\n':
+      case '\r':
+        return len;
+    }
   }
   return a;
 
@@ -103,7 +117,15 @@ int _write(int file, char *ptr, int len) {
 //  pl011_puts(ptr, len);
 
   for (int a = 0; a < len; a++) {
-    sysputc(*ptr++);
+    if (file == 2) {
+      sysputc1(*ptr++);
+      if (*(ptr-1) == '\n')
+        sysputc1('\r');
+    } else {
+      sysputc(*ptr++);
+      if (*(ptr-1) == '\n')
+        sysputc('\r');
+    }
   }
 
 
