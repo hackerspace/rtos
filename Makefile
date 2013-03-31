@@ -17,7 +17,7 @@ ifdef RELEASE
 CFLAGS = -O0 -std=gnu99 -Werror -DPLATFORM=$(PLATFORM) -DRASPBERRY_PI
 ASFLAGS =
 else
-CFLAGS = -Os -g -std=gnu99 -Werror -DPLATFORM=$(PLATFORM) -DRASPBERRY_PI
+CFLAGS = -O0 -g -std=gnu99 -Werror -DPLATFORM=$(PLATFORM) -DRASPBERRY_PI
 #-DLM4F
 ASFLAGS = -g
 endif
@@ -44,7 +44,7 @@ AOBJ     := $(ASRC:.s=.o)
 CSRC     := $(foreach sdir,$(SRC_DIR),$(wildcard $(sdir)/*.c))
 COBJ     := $(CSRC:.c=.o)
 
-INCLUDES := -Isrc $(addprefix -I,$(SRC_DIR) $(INC_DIR)) -I$(NEWLIB_DIR)/include
+INCLUDES := -Isrc -Isrc/include $(addprefix -I,$(SRC_DIR) $(INC_DIR)) -I$(NEWLIB_DIR)/include
 
 vpath %.c $(SRC_DIR)
 vpath %.cpp $(SRC_DIR)
@@ -75,9 +75,9 @@ all: bin/kernel.img
 gdb: bin/kernel.img
 	killall qemu-system-arm || true
 	# Start up qemu in the background
-	qemu-system-arm -nographic -M lm3s811evb -cpu cortex-m3 -m 1 -serial telnet:127.0.0.1:1235,server,nowait -kernel ./bin/kernel.elf -s -S &
+	terminal --default-working-directory=$(pwd) -e 'arm-none-eabi-gdb -q -nx -x "./gdbinit" --tui ./bin/kernel.elf' &
+	qemu-system-arm -nographic -M lm3s811evb -cpu cortex-m3 -m 2 -serial telnet:127.0.0.1:1235,server,nowait -serial telnet:127.0.0.1:1236,server,nowait -kernel ./bin/kernel.elf -s -S
 	# And fire up the debugger
-	arm-none-eabi-gdb -q -nx -x "./gdbinit" --tui ./bin/kernel.elf
 
 dump: bin/kernel.elf
 	arm-none-eabi-objdump -D bin/kernel.elf
